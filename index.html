@@ -1,23 +1,23 @@
 <!DOCTYPE html>
-<html lang="it">
+<html lang="it" data-theme="dark">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Scheda palestra</title>
 <link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" content="#2450F0">
+<meta name="theme-color" content="#0E1620">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Palestra">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
 <style>
 :root{--bg:#E8EBEF;--card:#F7F8FA;--ink:#18212C;--mute:#5E6B7A;--line:#CBD2DA;--acc:#2450F0;--onacc:#fff;--ok:#18212C;--onok:#F7F8FA;
 box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0E1620;--card:#172230;--ink:#E9EEF4;--mute:#8E9CAD;--line:#2A3949;--acc:#7C97FF;--onacc:#0E1620;--ok:#E9EEF4;--onok:#0E1620}}
+:root[data-theme="dark"]{--bg:#0E1620;--card:#172230;--ink:#E9EEF4;--mute:#8E9CAD;--line:#2A3949;--acc:#7C97FF;--onacc:#0E1620;--ok:#E9EEF4;--onok:#0E1620}
 *{box-sizing:border-box}
 html{height:100%}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding-bottom:110px}
 .f{font-family:"Barlow Condensed","Arial Narrow",Impact,sans-serif;font-weight:700}
-header{padding:16px 16px 4px}
+header{padding:16px 16px 4px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px}#th{width:44px;height:44px;border-radius:50%;border:2px solid var(--line);background:transparent;color:var(--ink);font-size:20px;cursor:pointer;flex:none}
 h1{margin:0;font-size:30px;line-height:1}
 .sub{color:var(--mute);font-size:14px;margin-top:4px}
 nav{display:flex;gap:8px;padding:12px 16px;position:sticky;top:env(safe-area-inset-top,0px);background:var(--bg);z-index:5}
@@ -53,7 +53,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--acc);outline-of
 </style>
 </head>
 <body>
-<header><h1 class="f">Scheda palestra</h1><div class="sub" id="sub"></div></header>
+<header><div><h1 class="f">Scheda palestra</h1><div class="sub" id="sub"></div></div><button id="th" aria-label="Cambia tema chiaro o scuro"></button></header>
 <nav id="nav"></nav>
 <main id="list"></main>
 <div class="tools"><button id="rs">Azzera le serie di questo giorno</button></div>
@@ -86,9 +86,10 @@ var D=[
 ["Pulldown cavo basso tricipiti (stripping)",1,"max","","serie max, poi scala di 10 kg",0],
 ["Pull down dorso (finisher)",2,"12",35,"",60]]}
 ];
-var K="gym-v1",S={day:0,kg:{},sw:{},order:{},rest:{},done:{}},T=null,tick=null,ctx=null;
+var K="gym-v1",S={day:0,theme:"dark",kg:{},sw:{},order:{},rest:{},done:{}},T=null,tick=null,ctx=null;
 try{var r=localStorage.getItem(K);if(r)S=Object.assign(S,JSON.parse(r))}catch(x){}
 function save(){try{localStorage.setItem(K,JSON.stringify(S))}catch(x){}}
+function applyTheme(){document.documentElement.setAttribute("data-theme",S.theme);document.getElementById("th").textContent=S.theme=="dark"?"☀":"☾";var m=document.querySelector('meta[name=theme-color]');if(m)m.content=S.theme=="dark"?"#0E1620":"#E8EBEF"}
 function id(d,i){return d+"-"+i}
 function getOrder(dy){var n=D[dy].e.length,o=(S.order[dy]||[]).filter(function(x){return x<n});for(var i=0;i<n;i++)if(o.indexOf(i)<0)o.push(i);S.order[dy]=o;return o}
 function baseKg(k,e){return S.kg[k]!==undefined?S.kg[k]:e[3]}
@@ -127,6 +128,7 @@ var rest=S.rest[k]!==undefined?S.rest[k]:e[5];
 if(rest>0)start(rest,e[0]+": serie "+n+" di "+e[1]+" fatta, recupera");else stop();return}
 if(d.r){var e2=D[S.day].e[+d.k.split("-")[1]],c=S.rest[d.k]!==undefined?S.rest[d.k]:e2[5];
 c=Math.max(0,Math.min(600,c+ +d.r));S.rest[d.k]=c;save();document.querySelector('[data-rv="'+d.k+'"]').textContent=c?fmt(c):"off";return}
+if(b.id==="th"){S.theme=S.theme=="dark"?"light":"dark";save();applyTheme();return}
 if(b.id==="sk"){stop();return}
 if(b.id==="p15"&&T){T.end+=15000;upd();return}
 if(b.id==="rs"){D[S.day].e.forEach(function(_,i){delete S.done[id(S.day,i)]});save();stop();render()}
@@ -134,7 +136,7 @@ if(b.id==="rs"){D[S.day].e.forEach(function(_,i){delete S.done[id(S.day,i)]});sa
 document.addEventListener("input",function(ev){var t=ev.target,ds=t.dataset||{};
 if(ds.kg){var k=ds.kg;S.kg[k]=t.value;save();t.closest(".card").querySelectorAll(".sk").forEach(function(inp){var o=S.sw[k];if(!(o&&o[inp.dataset.n]!==undefined))inp.value=t.value});return}
 if(ds.sw){var k2=ds.sw;S.sw[k2]=S.sw[k2]||{};S.sw[k2][ds.n]=t.value;save()}});
-render();
+applyTheme();render();
 if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){})})}
 </script>
 </body>
