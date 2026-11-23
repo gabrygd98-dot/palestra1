@@ -50,6 +50,20 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--acc);outline-of
 #lb{flex:1;font-size:14px;line-height:1.2}
 #bar button{border:2px solid var(--onacc);background:transparent;color:var(--onacc);border-radius:10px;padding:10px 12px;font-size:15px;font-weight:600;cursor:pointer}
 @media (prefers-reduced-motion:reduce){#bar.end{animation:none}}
+.sh{border-top:0!important;padding:0 0 4px!important;color:var(--mute);font-size:12px}
+.sr{display:grid;grid-template-columns:24px 1fr 1fr 46px;gap:10px;align-items:center}
+.sr .set{justify-self:end;margin-left:0}
+.sk{width:100%;min-width:0}
+.set.on{background:var(--acc);border-color:var(--acc);color:var(--onacc)}
+.set{border-color:var(--line)}
+.card.fin{border-color:var(--line)}
+.card.cur{border-color:var(--acc)}
+.dots{width:40px;height:40px;border:2px solid var(--line);border-radius:10px;background:transparent;color:var(--ink);font-size:20px;cursor:pointer}
+.menu{display:flex;gap:16px;flex-wrap:wrap;margin-top:12px;padding:12px;background:var(--bg);border-radius:10px}
+.menu .step{background:var(--card)}
+.step button:disabled{opacity:.3;cursor:default}
+.cd{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;text-align:left;color:var(--mute);cursor:pointer;font:inherit}
+.cd .name{font-size:19px}.cd .sm{font-size:18px}
 </style>
 </head>
 <body>
@@ -86,7 +100,7 @@ var D=[
 ["Pulldown cavo basso tricipiti (stripping)",1,"max","","serie max, poi scala di 10 kg",0],
 ["Pull down dorso (finisher)",2,"12",35,"",60]]}
 ];
-var K="gym-v1",S={day:0,theme:"dark",kg:{},sw:{},sr:{},order:{},rest:{},done:{}},T=null,tick=null,ctx=null;
+var openK=null,EX={};var K="gym-v1",S={day:0,theme:"dark",kg:{},sw:{},sr:{},order:{},rest:{},done:{}},T=null,tick=null,ctx=null;
 try{var r=localStorage.getItem(K);if(r)S=Object.assign(S,JSON.parse(r))}catch(x){}
 function save(){try{localStorage.setItem(K,JSON.stringify(S))}catch(x){}}
 function applyTheme(){document.documentElement.setAttribute("data-theme",S.theme);document.getElementById("th").textContent=S.theme=="dark"?"☀":"☾";var m=document.querySelector('meta[name=theme-color]');if(m)m.content=S.theme=="dark"?"#0E1620":"#E8EBEF"}
@@ -95,20 +109,24 @@ function getOrder(dy){var n=D[dy].e.length,o=(S.order[dy]||[]).filter(function(x
 function baseKg(k,e){return S.kg[k]!==undefined?S.kg[k]:e[3]}
 function repVal(k,n,e){var o=S.sr[k];return o&&o[n]!==undefined?o[n]:(/^\d+$/.test(e[2])?e[2]:"")}
 function updSub(){var d=D[S.day],tot=0,dn=0,vol=0;d.e.forEach(function(e,i){var k=id(S.day,i),c=S.done[k]||0;tot+=e[1];dn+=c;for(var n=1;n<=c;n++)vol+=(parseFloat(setKg(k,n,e))||0)*(parseFloat(repVal(k,n,e))||0)});document.getElementById("sub").textContent=d.s+" · "+dn+"/"+tot+" serie · "+Math.round(vol)+" kg di volume"}
-function setKg(k,n,e){var o=S.sw[k];return o&&o[n]!==undefined?o[n]:baseKg(k,e)}
+function setKg(k,n,e){var o=S.sw[k];for(var m=n;m>=1;m--)if(o&&o[m]!==undefined)return o[m];return baseKg(k,e)}
+function refreshKg(k,card,skip){var e=D[S.day].e[+k.split("-")[1]];card.querySelectorAll(".sk[data-sw]").forEach(function(inp){if(inp!==skip&&!(S.sw[k]&&S.sw[k][inp.dataset.n]!==undefined))inp.value=setKg(k,+inp.dataset.n,e)})}
 function fmt(s){s=Math.max(0,Math.ceil(s));return Math.floor(s/60)+":"+String(s%60).padStart(2,"0")}
 function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,"&quot;")}
 function render(){
 var d=D[S.day];
 updSub();
 document.getElementById("nav").innerHTML=D.map(function(g,i){return '<button class="f" data-day="'+i+'" aria-pressed="'+(i==S.day)+'">'+g.t+'</button>'}).join("");
-var ord=getOrder(S.day);document.getElementById("list").innerHTML=ord.map(function(i,pos){var e=d.e[i];
-var k=id(S.day,i),kg=baseKg(k,e),rest=S.rest[k]!==undefined?S.rest[k]:e[5],dn=S.done[k]||0,sets="";
-for(var n=1;n<=e[1];n++)sets+='<div class="sr"><span class="sn f">'+n+'</span><input class="sk" type="number" inputmode="decimal" step="0.5" min="0" data-sw="'+k+'" data-n="'+n+'" value="'+esc(setKg(k,n,e))+'" placeholder="kg" aria-label="Kg serie '+n+'"><span class="u">kg</span><input class="sk" type="number" inputmode="numeric" step="1" min="0" data-sr="'+k+'" data-n="'+n+'" value="'+esc(repVal(k,n,e))+'" placeholder="rip" aria-label="Ripetizioni serie '+n+'"><span class="u">rip</span><button class="set'+(n<=dn?" on":"")+'" data-set="'+n+'" data-k="'+k+'" data-i="'+i+'" aria-label="Serie '+n+(n<=dn?", fatta":", segna come fatta")+'">\u2713</button></div>';
-return '<section class="card'+(/finisher/.test(e[0])?" fin":"")+'"><div class="top"><div><div class="name f">'+esc(e[0])+'</div>'+(e[4]?'<div class="note">'+esc(e[4])+'</div>':'')+'</div><div class="rt"><div class="scheme f">'+e[1]+"×"+e[2]+'</div><div class="mv"><button data-mv="-1" data-pos="'+pos+'"'+(pos==0?" disabled":"")+' aria-label="Sposta su">▲</button><button data-mv="1" data-pos="'+pos+'"'+(pos==ord.length-1?" disabled":"")+' aria-label="Sposta giù">▼</button></div></div></div>'
-+'<div class="row"><div><label for="kg'+k+'">Carico base (kg)</label><input class="kg" id="kg'+k+'" data-kg="'+k+'" type="number" inputmode="decimal" step="0.5" min="0" value="'+esc(kg)+'" placeholder="–"></div>'
-+'<div><label>Recupero</label><div class="step"><button data-r="-15" data-k="'+k+'" aria-label="Meno 15 secondi">−</button><span data-rv="'+k+'">'+(rest?fmt(rest):"off")+'</span><button data-r="15" data-k="'+k+'" aria-label="Più 15 secondi">+</button></div></div></div>'
-+'<div class="sets">'+sets+'</div></section>'}).join("");
+var ord=getOrder(S.day),cur=-1;
+for(var q=0;q<ord.length;q++){if((S.done[id(S.day,ord[q])]||0)<d.e[ord[q]][1]){cur=q;break}}
+document.getElementById("list").innerHTML=ord.map(function(i,pos){
+var e=d.e[i],k=id(S.day,i),rest=S.rest[k]!==undefined?S.rest[k]:e[5],dn=S.done[k]||0;
+if(dn>=e[1]&&!EX[k]&&openK!==k){var mx=0;for(var z=1;z<=e[1];z++)mx=Math.max(mx,parseFloat(setKg(k,z,e))||0);
+return '<button class="card cd" data-exp="'+k+'" aria-label="Mostra '+esc(e[0])+'"><span class="name f">\u2713 '+esc(e[0])+'</span><span class="sm f">'+e[1]+"\u00d7"+e[2]+(mx?" \u00b7 "+mx+" kg":"")+'</span></button>'}
+var sets='<div class="sr sh"><span></span><span>kg</span><span>rip</span><span></span></div>';
+for(var n=1;n<=e[1];n++)sets+='<div class="sr"><span class="sn f">'+n+'</span><input class="sk" type="number" inputmode="decimal" step="0.5" min="0" data-sw="'+k+'" data-n="'+n+'" value="'+esc(setKg(k,n,e))+'" placeholder="kg" aria-label="Kg serie '+n+'"><input class="sk" type="number" inputmode="numeric" step="1" min="0" data-sr="'+k+'" data-n="'+n+'" value="'+esc(repVal(k,n,e))+'" placeholder="rip" aria-label="Ripetizioni serie '+n+'"><button class="set'+(n<=dn?" on":"")+'" data-set="'+n+'" data-k="'+k+'" data-i="'+i+'" aria-label="Serie '+n+(n<=dn?", fatta":", segna come fatta")+'">\u2713</button></div>';
+var menu=openK===k?'<div class="menu"><div><label>Recupero</label><div class="step"><button data-r="-15" data-k="'+k+'" aria-label="Meno 15 secondi">\u2212</button><span data-rv="'+k+'">'+(rest?fmt(rest):"off")+'</span><button data-r="15" data-k="'+k+'" aria-label="Pi\u00f9 15 secondi">+</button></div></div><div><label>Posizione</label><div class="step"><button data-mv="-1" data-pos="'+pos+'"'+(pos==0?" disabled":"")+' aria-label="Sposta su">\u25b2</button><button data-mv="1" data-pos="'+pos+'"'+(pos==ord.length-1?" disabled":"")+' aria-label="Sposta gi\u00f9">\u25bc</button></div></div></div>':'';
+return '<section class="card'+(pos==cur?" cur":"")+'"><div class="top"><div><div class="name f">'+esc(e[0])+'</div>'+(e[4]?'<div class="note">'+esc(e[4])+'</div>':'')+'</div><div class="rt"><div class="scheme f">'+e[1]+"\u00d7"+e[2]+'</div><button class="dots" data-menu="'+k+'" aria-expanded="'+(openK===k)+'" aria-label="Opzioni esercizio">\u22ef</button></div></div>'+menu+'<div class="sets">'+sets+'</div></section>'}).join("");
 }
 function beep(){try{ctx=ctx||new (window.AudioContext||window.webkitAudioContext)();[0,.25,.5].forEach(function(t){var o=ctx.createOscillator(),g=ctx.createGain();o.frequency.value=880;g.gain.value=.25;o.connect(g);g.connect(ctx.destination);o.start(ctx.currentTime+t);o.stop(ctx.currentTime+t+.15)})}catch(x){}
 try{navigator.vibrate&&navigator.vibrate([200,100,200])}catch(x){}}
@@ -121,7 +139,9 @@ function upd(){if(!T)return;var left=(T.end-Date.now())/1000;document.getElement
 if(left<=0){clearInterval(tick);beep();document.getElementById("t").textContent="Via!";document.getElementById("lb").textContent="Recupero finito: tocca a te";document.getElementById("bar").className="show end";T=null;setTimeout(function(){if(!T)document.getElementById("bar").className=""},6000)}}
 document.addEventListener("click",function(ev){
 var b=ev.target.closest("button");if(!b)return;var d=b.dataset;
-if(d.day!==undefined){S.day=+d.day;save();stop();render();return}
+if(d.day!==undefined){S.day=+d.day;openK=null;EX={};save();stop();render();return}
+if(d.menu){openK=openK===d.menu?null:d.menu;render();return}
+if(d.exp){EX[d.exp]=true;render();return}
 if(d.mv){var o=getOrder(S.day),p=+d.pos,q=p+ +d.mv;if(q>=0&&q<o.length){var tmp=o[p];o[p]=o[q];o[q]=tmp;save();render()}return}
 if(d.set){var n=+d.set,k=d.k,cur=S.done[k]||0,e=D[S.day].e[+d.i];
 if(n<=cur){S.done[k]=n-1;save();render();return}
@@ -138,7 +158,7 @@ if(b.id==="rs"){D[S.day].e.forEach(function(_,i){delete S.done[id(S.day,i)]});sa
 });
 document.addEventListener("input",function(ev){var t=ev.target,ds=t.dataset||{};
 if(ds.kg){var k=ds.kg;S.kg[k]=t.value;save();t.closest(".card").querySelectorAll(".sk[data-sw]").forEach(function(inp){var o=S.sw[k];if(!(o&&o[inp.dataset.n]!==undefined))inp.value=t.value});return}
-if(ds.sw){var k2=ds.sw;S.sw[k2]=S.sw[k2]||{};S.sw[k2][ds.n]=t.value;save();updSub()}
+if(ds.sw){var k2=ds.sw;S.sw[k2]=S.sw[k2]||{};S.sw[k2][ds.n]=t.value;save();updSub();refreshKg(k2,t.closest(".card"),t)}
 if(ds.sr){var k3=ds.sr;S.sr[k3]=S.sr[k3]||{};S.sr[k3][ds.n]=t.value;save();updSub()}});
 applyTheme();render();
 if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){})})}
