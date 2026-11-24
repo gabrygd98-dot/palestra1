@@ -150,10 +150,10 @@ function tp(k,e){if(S.tp[k])return S.tp[k];var n=e[0];if(/manubri\b/i.test(n))re
 function perLato(k,e){if(tp(k,e)!=="b")return false;return S.pl[k]!==undefined?S.pl[k]:(e[4]==="per lato"||/\bEZ\b/i.test(e[0]))}
 function load(k,e,kg){if(tp(k,e)=="d")return kg*2;if(perLato(k,e))return kg*2+(parseFloat(S.bw[k])||0);return kg}
 function mult(k,e){return tp(k,e)=="d"?2:1}
-function barW(k,e){return S.bw[k]!==undefined&&S.bw[k]!==""?(parseFloat(S.bw[k])||0):(/\bEZ\b/i.test(e[0])?10:20)}
+function barW(k,e){return S.bw[k]!==undefined&&S.bw[k]!==""?(parseFloat(S.bw[k])||0):10}
 function dscText(k,e){var n=Math.min((S.done[k]||0)+1,ns(k,e)),kg=parseFloat(setKg(k,n,e))||0;if(!kg)return"Inserisci il carico per vedere i dischi";
 var pl=perLato(k,e)?kg:(kg-barW(k,e))/2;if(pl<0)return"Carico inferiore al bilanciere ("+barW(k,e)+" kg)";if(pl===0)return"Solo bilanciere";
-var P=[25,20,15,10,5,2.5,1.25,1,0.5],o=[],r=pl;P.forEach(function(q){while(r+1e-9>=q){o.push(q);r-=q}});
+var P=[20,10,5,2,1,0.5],o=[],r=pl;P.forEach(function(q){while(r+1e-9>=q){o.push(q);r-=q}});
 return"Dischi per lato (serie "+n+", "+kg+" kg): "+o.join(" + ").replace(/\./g,",")+(r>0.01?" \u00b7 mancano "+(Math.round(r*100)/100)+" kg per lato":"")}
 function refreshDsc(k){var el=document.getElementById("ds"+k);if(el)el.textContent=dscText(k,D[S.day].e[+k.split("-")[1]])}
 var MG=["Petto","Dorso","Spalle","Bicipiti","Tricipiti","Gambe"];
@@ -236,10 +236,13 @@ if(!confirm("Terminare e salvare l\u2019allenamento?"))return;
 var prs=[];ex.forEach(function(x){var pe=0;S.hist.forEach(function(h){h.ex.forEach(function(y){if((y.o||y.n)===x.o)pe=Math.max(pe,maxE(y.s))})});var ce=maxE(x.s);if(pe>0&&ce>pe+0.01){x.pr=1;var bs=bestSet(x.s);prs.push(x.n+": "+bs[0]+" kg \u00d7 "+bs[1])}});
 S.hist.push({t:Date.now(),d:S.day,dur:S.start?Math.round((Date.now()-S.start)/1000):0,vol:Math.round(vol),ns:ns,ex:ex});
 d.e.forEach(function(_,i){delete S.done[id(S.day,i)]});S.start=null;wlOff();save();stop();render();if(prs.length)setTimeout(function(){alert("Nuovo record personale!\n"+prs.join("\n"))},60)}
+function recalcHist(){var n=0;S.hist.forEach(function(h){var v=0;h.ex.forEach(function(x){var di=h.d,idx=-1;if(D[di])D[di].e.forEach(function(e,i){if(idx<0&&e[0]===(x.o||x.n))idx=i});var e=idx>=0?D[di].e[idx]:null,k=id(di,idx);
+x.s.forEach(function(t){v+=(e?load(k,e,t[0]):t[0]*(x.m||1))*t[1]});if(e){x.m=mult(k,e);x.l=perLato(k,e)?1:0}});
+var nv=Math.round(v);if(nv!==h.vol){n++;h.vol=nv}});save();return n}
 function renderHist(){document.getElementById("sub").textContent=S.hist.length+" allenamenti salvati \u00b7 "+S.hist.filter(function(x){return Date.now()-x.t<6048e5}).length+" negli ultimi 7 giorni";
 var h=S.hist.slice().reverse();
-document.getElementById("list").innerHTML=h.length?h.map(function(x){var idx=S.hist.indexOf(x);
-return '<section class="card"><div class="top"><div><div class="name f">'+esc(D[x.d].t+" \u00b7 "+D[x.d].s)+'</div><div class="note">'+new Date(x.t).toLocaleDateString("it-IT",{weekday:"short",day:"numeric",month:"short",year:"numeric"})+" \u00b7 "+(x.dur?Math.round(x.dur/60)+" min \u00b7 ":"")+x.ns+" serie \u00b7 "+x.vol+' kg di volume</div></div><button class="dots" data-del="'+idx+'" aria-label="Elimina allenamento">\u00d7</button></div><div class="hx">'+x.ex.map(function(e){return '<div><b>'+esc(e.n)+'</b>'+(e.pr?' <span class="pr">\u2605 record</span>':'')+'<br>'+e.s.map(function(t){return t[0]+"\u00d7"+t[1]}).join(" \u00b7 ")+'</div>'}).join("")+'</div></section>'}).join(""):'<p class="note">Nessun allenamento salvato. Premi "Termina allenamento" quando hai finito.</p>'}
+document.getElementById("list").innerHTML=(h.length?'<button class="pbtn" data-recalc="1" style="margin:0">Ricalcola i volumi con le regole attuali</button>':'')+(h.length?h.map(function(x){var idx=S.hist.indexOf(x);
+return '<section class="card"><div class="top"><div><div class="name f">'+esc(D[x.d].t+" \u00b7 "+D[x.d].s)+'</div><div class="note">'+new Date(x.t).toLocaleDateString("it-IT",{weekday:"short",day:"numeric",month:"short",year:"numeric"})+" \u00b7 "+(x.dur?Math.round(x.dur/60)+" min \u00b7 ":"")+x.ns+" serie \u00b7 "+x.vol+' kg di volume</div></div><button class="dots" data-del="'+idx+'" aria-label="Elimina allenamento">\u00d7</button></div><div class="hx">'+x.ex.map(function(e){return '<div><b>'+esc(e.n)+'</b>'+(e.pr?' <span class="pr">\u2605 record</span>':'')+'<br>'+e.s.map(function(t){return t[0]+"\u00d7"+t[1]}).join(" \u00b7 ")+'</div>'}).join("")+'</div></section>'}).join(""):'<p class="note">Nessun allenamento salvato. Premi "Termina allenamento" quando hai finito.</p>')}
 function render(){
 var d=D[S.day];
 updSub();
@@ -289,6 +292,7 @@ if(d.day!==undefined){view("");S.day=+d.day;openK=null;EX={};FS={};save();stop()
 if(d.hist){view("h");openK=null;stop();render();return}
 if(d.del!==undefined){if(confirm("Eliminare questo allenamento dallo storico?")){S.hist.splice(+d.del,1);save();render()}return}
 if(d.sug){var e3=D[S.day].e[+d.sug.split("-")[1]];S.sw[d.sug]={};for(var n3=1;n3<=e3[1];n3++)S.sw[d.sug][n3]=d.kg;save();render();return}
+if(d.recalc){if(confirm("Ricalcolare il volume di tutti gli allenamenti salvati con le regole attuali (manubri \u00d72, dischi per lato)?")){var cc=recalcHist();render();alert(cc?cc+" allenamenti aggiornati.":"Nessuna modifica: i volumi erano gi\u00e0 corretti.")}return}
 if(d.stat){view("s");stop();render();return}
 if(d.nd){D.push({t:"Giorno "+(D.length+1),s:"",e:[]});save();render();return}
 if(d.add!==undefined){var di=+d.add,nv=document.getElementById("an"+di).value.trim();if(!nv){alert("Scrivi il nome dell\u2019esercizio.");return}
